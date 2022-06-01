@@ -1,11 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from random import random
 import requests
 from lxml import html
 import unicodecsv as csv
-import argparse
+import time
+import os.path
+import random
+import lxml
 
+#TODO: go through US' 50 cities, 
+
+
+save_path='/home/baoqdau/Centuryon Agency/yellowpages-scraper'
 
 def parse_listing(keyword, place):
     """
@@ -16,7 +24,6 @@ def parse_listing(keyword, place):
 
     """
     url = "https://www.yellowpages.com/search?search_terms={0}&geo_location_terms={1}".format(keyword, place)
-
     print("retrieving ", url)
 
     headers = {'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
@@ -38,14 +45,18 @@ def parse_listing(keyword, place):
                 # making links absolute
                 base_url = "https://www.yellowpages.com"
                 parser.make_links_absolute(base_url)
-
+                # with open("result.txt", 'wb') as f:
+                #     f.write(parser)
+                print(lxml.tostring(response.text))
                 XPATH_LISTINGS = "//div[@class='search-results organic']//div[@class='v-card']"
                 listings = parser.xpath(XPATH_LISTINGS)
                 scraped_results = []
-
+                # print(listings)
                 for results in listings:
                     XPATH_BUSINESS_NAME = ".//a[@class='business-name']//text()"
+
                     XPATH_BUSSINESS_PAGE = ".//a[@class='business-name']//@href"
+
                     XPATH_TELEPHONE = ".//div[@class='phones phone primary']//text()"
                     XPATH_ADDRESS = ".//div[@class='info']//div//p[@itemprop='address']"
                     XPATH_STREET = ".//div[@class='street-address']//text()"
@@ -57,6 +68,7 @@ def parse_listing(keyword, place):
                     XPATH_WEBSITE = ".//div[@class='info']//div[contains(@class,'info-section')]//div[@class='links']//a[contains(@class,'website')]/@href"
                     XPATH_RATING = ".//div[@class='info']//div[contains(@class,'info-section')]//div[contains(@class,'result-rating')]//span//text()"
 
+                    # print(results)
                     raw_business_name = results.xpath(XPATH_BUSINESS_NAME)
                     raw_business_telephone = results.xpath(XPATH_TELEPHONE)
                     raw_business_page = results.xpath(XPATH_BUSSINESS_PAGE)
@@ -78,9 +90,14 @@ def parse_listing(keyword, place):
                     website = ''.join(raw_website).strip() if raw_website else None
                     rating = ''.join(raw_rating).replace("(", "").replace(")", "").strip() if raw_rating else None
                     street = ''.join(raw_street).strip() if raw_street else None
-                    locality = ''.join(raw_locality).replace(',\xa0', '').strip() if raw_locality else None
-                    locality, locality_parts = locality.split(',')
-                    _, region, zipcode = locality_parts.split(' ')
+                    if raw_locality:
+                        locality = ''.join(raw_locality).replace(',\xa0', '').strip() if raw_locality else None
+                        locality, locality_parts = locality.split(',')
+                        _, region, zipcode = locality_parts.split(' ')
+                    else:
+                        locality = ''
+                        region = ''
+                        zipcode = ''
 
                     business_details = {
                         'business_name': business_name,
@@ -112,25 +129,33 @@ def parse_listing(keyword, place):
             print("Failed to process page")
             return []
 
+def main_script():
+
+    with open("us-cities.txt") as f:
+        cities = [line.rstrip('\n') for line in f]
+
+    with open('niches.txt') as f:
+        niches = [line.rstrip('\n') for line in f]
+
+    for keyword in niches:
+        for place in cities:
+            scraped_data = parse_listing(keyword, place)
+
+            if scraped_data:
+                completeName = os.path.join(save_path, keyword + '/', place +".csv")     
+                os.makedirs(os.path.dirname(completeName), exist_ok=True)
+                print("Writing scraped data to %s" % completeName)
+                with open(completeName, 'wb') as csvfile:
+                    fieldnames = ['rank', 'business_name', 'telephone', 'business_page', 'category', 'website', 'rating',
+                                'street', 'locality', 'region', 'zipcode', 'listing_url']
+                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+                    writer.writeheader()
+                    for data in scraped_data:
+                        writer.writerow(data)
+            
+            time.sleep(random.randint(1,10))
+
 
 if __name__ == "__main__":
-
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument('keyword', help='Search Keyword')
-    argparser.add_argument('place', help='Place Name')
-
-    args = argparser.parse_args()
-    keyword = args.keyword
-    place = args.place
-
-    scraped_data = parse_listing(keyword, place)
-
-    if scraped_data:
-        print("Writing scraped data to %s-%s-yellowpages-scraped-data.csv" % (keyword, place))
-        with open('%s-%s-yellowpages-scraped-data.csv' % (keyword, place), 'wb') as csvfile:
-            fieldnames = ['rank', 'business_name', 'telephone', 'business_page', 'category', 'website', 'rating',
-                          'street', 'locality', 'region', 'zipcode', 'listing_url']
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
-            writer.writeheader()
-            for data in scraped_data:
-                writer.writerow(data)
+    # main_script()
+    parse_listing('dentist', 'boston, ma')

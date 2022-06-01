@@ -15,6 +15,11 @@ import lxml
 
 save_path='/home/baoqdau/Centuryon Agency/yellowpages-scraper'
 
+def email_extract(href_attribute):
+    if (len(href_attribute) != 0):
+        return ''.join(href_attribute.split(":").get(1));
+    return '';
+
 def parse_listing(keyword, place):
     """
 
@@ -56,6 +61,7 @@ def parse_listing(keyword, place):
                     XPATH_BUSINESS_NAME = ".//a[@class='business-name']//text()"
 
                     XPATH_BUSSINESS_PAGE = ".//a[@class='business-name']//@href"
+                    XPATH_EMAIL = ".//div[@class='email-business']//@href"
 
                     XPATH_TELEPHONE = ".//div[@class='phones phone primary']//text()"
                     XPATH_ADDRESS = ".//div[@class='info']//div//p[@itemprop='address']"
@@ -70,6 +76,7 @@ def parse_listing(keyword, place):
 
                     # print(results)
                     raw_business_name = results.xpath(XPATH_BUSINESS_NAME)
+                    raw_email_business = results.xpath(XPATH_EMAIL)
                     raw_business_telephone = results.xpath(XPATH_TELEPHONE)
                     raw_business_page = results.xpath(XPATH_BUSSINESS_PAGE)
                     raw_categories = results.xpath(XPATH_CATEGORIES)
@@ -83,6 +90,7 @@ def parse_listing(keyword, place):
                     raw_rank = results.xpath(XPATH_RANK)
 
                     business_name = ''.join(raw_business_name).strip() if raw_business_name else None
+                    email = ''.join(email_extract(raw_email_business)) if raw_email_business else None
                     telephone = ''.join(raw_business_telephone).strip() if raw_business_telephone else None
                     business_page = ''.join(raw_business_page).strip() if raw_business_page else None
                     rank = ''.join(raw_rank).replace('.\xa0', '') if raw_rank else None
@@ -101,6 +109,7 @@ def parse_listing(keyword, place):
 
                     business_details = {
                         'business_name': business_name,
+                        'email' : email,
                         'telephone': telephone,
                         'business_page': business_page,
                         'rank': rank,

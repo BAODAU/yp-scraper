@@ -89,7 +89,7 @@ def parse_listing(keyword, place):
                     raw_rank = results.xpath(XPATH_RANK)
 
                     try:
-                        print("parsing detail page")
+                        print("parsing detail page of " + ''.join(base_url).join(raw_business_page).strip())
                         business_details_url = ''.join(base_url).join(raw_business_page).strip()
                         business_details_response = requests.get(business_details_url, verify=False,
                                                                  headers=headers)
@@ -180,4 +180,4 @@ def main_script():
 
 if __name__ == "__main__":
     # main_script()
-    parse_listing('dentist', 'boston, ma')
+    parse_listing('printing', 'boston, ma')

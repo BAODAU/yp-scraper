@@ -52,7 +52,7 @@ def parse_listing(keyword, place):
                 parser.make_links_absolute(base_url)
                 # with open("result.txt", 'wb') as f:
                 #     f.write(parser)
-                print(lxml.tostring(response.text))
+                # print(lxml.tostring(response.text))
                 XPATH_LISTINGS = "//div[@class='search-results organic']//div[@class='v-card']"
                 listings = parser.xpath(XPATH_LISTINGS)
                 scraped_results = []
@@ -88,20 +88,19 @@ def parse_listing(keyword, place):
                     raw_zip_code = results.xpath(XPATH_ZIP_CODE)
                     raw_rank = results.xpath(XPATH_RANK)
 
-                    for retry in range(10):
-                        try:
-                            print("parsing page")
-                            business_details_url = ''.join(base_url).join(raw_business_page).strip()
-                            business_details_response = requests.get(business_details_url, verify=False,
-                                                                     headers=headers)
-                            if business_details_response.status_code == 200:
-                                detail_parser = html.fromstring(business_details_response.text)
-                                print(lxml.tostring(response.text))
-                                XPATH_EMAIL = ".//a[@class='email-business']//@href"
-                                raw_email_business = detail_parser.xpath(XPATH_EMAIL)
-                        except:
-                            print("Failed to process page")
-                            return []
+                    try:
+                        print("parsing detail page")
+                        business_details_url = ''.join(base_url).join(raw_business_page).strip()
+                        business_details_response = requests.get(business_details_url, verify=False,
+                                                                 headers=headers)
+                        if business_details_response.status_code == 200:
+                            detail_parser = html.fromstring(business_details_response.text)
+                            # print(lxml.tostring(response.text))
+                            XPATH_EMAIL = ".//a[@class='email-business']//@href"
+                            raw_email_business = detail_parser.xpath(XPATH_EMAIL)
+                    except:
+                        print("Failed to process detail page")
+                        return []
 
                     business_name = ''.join(raw_business_name).strip() if raw_business_name else None
                     email = ''.join(email_extract(raw_email_business)) if raw_email_business else None
